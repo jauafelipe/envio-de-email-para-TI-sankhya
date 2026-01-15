@@ -1,5 +1,4 @@
 
-// Source code is decompiled from a .class file using FernFlower decompiler (from Intellij IDEA).
 import br.com.sankhya.extensions.eventoprogramavel.EventoProgramavelJava;
 import br.com.sankhya.jape.EntityFacade;
 import br.com.sankhya.jape.core.JapeSession;
@@ -8,6 +7,8 @@ import br.com.sankhya.jape.event.TransactionContext;
 import br.com.sankhya.jape.vo.DynamicVO;
 import br.com.sankhya.jape.vo.EntityVO;
 import br.com.sankhya.modelcore.util.EntityFacadeFactory;
+import oracle.net.aso.h;
+
 import java.math.BigDecimal;
 
 import com.sankhya.util.TimeUtils;
@@ -46,6 +47,11 @@ public class EventoChamadoTI implements EventoProgramavelJava {
       // colunas da tela principal
       BigDecimal codChamado = voChamado.asBigDecimal("NUMCHAM");
       String descricao = voChamado.asString("CHDESC");
+      String titulo = voChamado.asString("CHTITULO");
+      String tipch = 
+                  voChamado.asString("TIPCH").equals("A") ? "Sistema" : 
+                  voChamado.asString("TIPCH").equals("B") ? "Bem" :
+                  voChamado.asString("TIPCH").equals("S") ? "Serviço" : null;
       String status = 
                   voChamado.asString("STATUS").equals("A") ? "Aberto" : null;
       String prioridade = 
@@ -53,16 +59,19 @@ public class EventoChamadoTI implements EventoProgramavelJava {
                   voChamado.asString("CHPRIO").equals("N") ? "Normal" :
                   voChamado.asString("CHPRIO").equals("U") ? "Urgente" : null;
 
-
+      byte[] temImg = voChamado.asBlob("IMGPRO");
       String assunto = "Novo Chamado TI - Nº " + codChamado;
       // emails destinatários
       String emailTI = "ti@damezza.com.br";
 
-      String mensagem = "Olá,\n\n" +
-            "Um novo chamado de TI foi aberto.\n\n" +
+      String mensagem = 
+            "Olá, Um novo chamado de TI foi aberto.\n\n" +
             "Número: " + codChamado + "\n" +
             "Status: " + status + "\n" +
             "Prioridade: " + prioridade + "\n\n" +
+            "Tipo: " + tipch + "\n" +
+            "Imagem: " + (temImg != null ? "Imagem Anexada" : "Sem Imagem") + "\n\n" +
+            "Título:\n" + "<b>" + titulo + "</b>\n" +
             "Descrição:\n" + descricao;
 
       JapeSession.SessionHandle hnd = null;
@@ -73,7 +82,7 @@ public class EventoChamadoTI implements EventoProgramavelJava {
 
          EntityVO entityVO = dwfFacade.getDefaultValueObjectInstance("MSDFilaMensagem");
 
-         if (voChamado.asString("TIPCH").equals("A")) {
+         if (tipch != null) {
 
             DynamicVO dynamicVO = (DynamicVO) entityVO;
             dynamicVO.setProperty("ASSUNTO", assunto);
@@ -91,21 +100,6 @@ public class EventoChamadoTI implements EventoProgramavelJava {
             dwfFacade.createEntity("MSDFilaMensagem", entityVO);
          }
 
-         if (voChamado.asString("TIPCH").equals("B") || voChamado.asString("TIPCH").equals("S")) {
-
-            DynamicVO dynamicVO = (DynamicVO) entityVO;
-            dynamicVO.setProperty("ASSUNTO", assunto);
-            dynamicVO.setProperty("DTENTRADA", TimeUtils.getNow());
-            dynamicVO.setProperty("STATUS", "Pendente");
-            dynamicVO.setProperty("EMAIL", emailTI);
-            dynamicVO.setProperty("TENTENVIO", BigDecimal.ONE);
-            dynamicVO.setProperty("MENSAGEM", mensagem.toCharArray());
-            dynamicVO.setProperty("TIPOENVIO", "E");
-            dynamicVO.setProperty("MAXTENTENVIO", BigDecimal.valueOf(3L));
-            dynamicVO.setProperty("CODSMTP", BigDecimal.valueOf(1l));
-            dynamicVO.setProperty("CODCON", BigDecimal.ZERO);
-            dwfFacade.createEntity("MSDFilaMensagem", entityVO);
-         }
 
       } finally {
          JapeSession.close(hnd);
@@ -113,5 +107,17 @@ public class EventoChamadoTI implements EventoProgramavelJava {
 
    }
 
-   
+ /*
+ private void salvarHistoricoChamadoTIPosExclusao(PersistenceEvent event) throws Exception {
+      DynamicVO voChamado = (DynamicVO) event.getVo();
+      JapeSession.SessionHandle hnd = null;
+      try {
+         hnd = JapeSession.open();
+         EntityFacade dwfFacade = EntityFacadeFactory.getDWFFacade();
+      } catch (Exception e) {
+
+      }
+   }
+       
+   */  
 }
